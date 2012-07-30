@@ -4,7 +4,7 @@
 
 //:
 // \file
-// \brief A class that implements the dbrec3d_part concept for composite parts (i.e non-leafs). 
+// \brief IO utilities for point clouds extracted from the PVM. 
 // \author Isabel Restrepo mir@lems.brown.edu
 // \date  25-Jan-2012.
 //
