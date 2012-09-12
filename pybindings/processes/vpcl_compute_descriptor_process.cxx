@@ -31,6 +31,12 @@
 #include <pcl/features/impl/3dsc.hpp>
 
 
+//The definitions of the descriptors have recently changed in the trunk
+//define the correct version to keep the syntax correct. This should probably be done from CMake
+#define PCL_1_7
+//#define PCL_1_6
+
+
 //:global variables
 namespace vpcl_compute_descriptor_process_globals 
 {
@@ -122,7 +128,8 @@ bool vpcl_compute_descriptor_process(bprb_func_process& pro)
       extractor->compute (*descriptors);
       vcl_cout << "Done \n";
       //save ouput point cloud to file
-      vpcl_io_util::save_histogram_as_txt<FeatureType, 33>(cloud_out_file, descriptors);    
+//      vpcl_io_util::save_histogram_as_txt<FeatureType, 33>(cloud_out_file, descriptors);
+      vpcl_io_util::save_cloud<FeatureType, 33>(cloud_out_file, descriptors);
       vcl_string log_ext("_time_log.log");
       vcl_ofstream ofs;
       ofs.open((vul_file::strip_extension(cloud_out_file.c_str()) + log_ext).c_str());
@@ -132,7 +139,11 @@ bool vpcl_compute_descriptor_process(bprb_func_process& pro)
     }
     else if (descriptor_type == "SHOT")
     {
+#ifdef PCL_1_7
+      typedef SHOT352 FeatureType;
+#else
       typedef SHOT FeatureType;
+#endif
       typedef PointNormal PointType;
       typedef PointNormal NormalType;
       SHOTEstimationOMP<PointType, NormalType, FeatureType>::Ptr extractor(new SHOTEstimationOMP<PointType, NormalType, FeatureType>(jobs));
@@ -146,8 +157,10 @@ bool vpcl_compute_descriptor_process(bprb_func_process& pro)
       vcl_cout << "Descriptor extraction SHOT..." << vcl_endl;
       extractor->compute (*descriptors);
       vcl_cout << "Done \n";
-      timer.print(vcl_cout);       //save ouput point cloud to file
-      vpcl_io_util::save_descriptors_as_txt<FeatureType>(cloud_out_file, descriptors);
+      timer.print(vcl_cout);
+      //save ouput point cloud to file
+      //vpcl_io_util::save_descriptors_as_txt<FeatureType>(cloud_out_file, descriptors);
+      vpcl_io_util::save_cloud<FeatureType>(cloud_out_file, descriptors, true);
       vcl_string log_ext("_time_log.log");
       vcl_ofstream ofs;
       ofs.open((vul_file::strip_extension(cloud_out_file.c_str()) + log_ext).c_str());
@@ -156,7 +169,11 @@ bool vpcl_compute_descriptor_process(bprb_func_process& pro)
       return true;
     }else if (descriptor_type == "ShapeContext")
     {
+#ifdef PCL_1_7
+      typedef ShapeContext1980 FeatureType;
+#else
       typedef ShapeContext FeatureType;
+#endif
       typedef PointNormal PointType;
       typedef PointNormal NormalType;
       ShapeContext3DEstimation<PointType, NormalType, FeatureType> extractor;

@@ -6,5 +6,8 @@
 
 DECLARE_FUNC_CONS(vpcl_compute_spin_image_process);
 DECLARE_FUNC_CONS(vpcl_compute_descriptor_process);
+DECLARE_FUNC_CONS(vpcl_feature_based_rigid_transform_process);
+DECLARE_FUNC_CONS(vpcl_register_ia_process);
+DECLARE_FUNC_CONS(vpcl_register_icp_process);
 
 #endif

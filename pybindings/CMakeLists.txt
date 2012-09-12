@@ -15,6 +15,6 @@ aux_source_directory(processes vpcl_pro_sources)
 add_library(vpcl_pro ${vpcl_pro_sources})
 
 link_directories(${PCL_LIBRARY_DIRS})
-target_link_libraries(vpcl_pro vpcl_util)
+target_link_libraries(vpcl_pro vpcl_util vpcl_reg ${PCL_LIBRARIES} ${PCL_SEARCH_LIBRARY}  ${PCL_KDTREE_LIBRARY})
 
 

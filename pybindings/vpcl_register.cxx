@@ -15,6 +15,8 @@ void vpcl_register::register_process()
 {
   REG_PROCESS_FUNC_CONS2(vpcl_compute_spin_image_process);
   REG_PROCESS_FUNC_CONS2(vpcl_compute_descriptor_process);
-
+  REG_PROCESS_FUNC_CONS2(vpcl_feature_based_rigid_transform_process);
+  REG_PROCESS_FUNC_CONS2(vpcl_register_ia_process);
+  REG_PROCESS_FUNC_CONS2(vpcl_register_icp_process);
 } 
 

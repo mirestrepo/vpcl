@@ -8,7 +8,9 @@ cmake_minimum_required(VERSION 2.8)
 project(vpcl)
 
 find_package(VXL REQUIRED)
-find_package(PCL 1.6 REQUIRED)
+find_package(PCL 1.7 REQUIRED)
+
+MESSAGE(${PCL_VERSION})
 
 set(RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH    ${CMAKE_BINARY_DIR}/bin)
@@ -41,6 +43,7 @@ if(VXL_FOUND AND PCL_FOUND)
   add_subdirectory(pymodule)
   add_subdirectory(pybindings)
   add_subdirectory(util)
+  add_subdirectory(registration)
 
 endif(VXL_FOUND AND PCL_FOUND)
 

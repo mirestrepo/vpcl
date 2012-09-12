@@ -8,55 +8,55 @@
 
 
 //template <class PointType>
-bool vpcl_io_util::load_cloud (const vcl_string &filename, pcl::PointCloud<pcl::PointNormal>::Ptr cloud)
+bool vpcl_io_util::load_cloud (const string &filename, pcl::PointCloud<pcl::PointNormal>::Ptr cloud)
 {
-  vcl_cout << "Loading: " << filename <<vcl_endl;
+  cout << "Loading: " << filename <<endl;
   
-  vcl_string file_type = vul_file::extension(filename);
+  string file_type = vul_file::extension(filename);
   if (file_type == ".pcd") {
     if (pcl::io::loadPCDFile (filename, *cloud) < 0)
       return (false);
   }
   else if (file_type == ".ply"){
     pcl::PLYReader reader;
-    vcl_cout << " Reading..." << vcl_endl;
+    cout << " Reading..." << endl;
 //    if(!reader.read (filename, *cloud)){
-//      vcl_cout<< "PCL PLY reader failed, trying custom reader \n";
+//      cout<< "PCL PLY reader failed, trying custom reader \n";
 //      cloud->clear();
 //      if(! normals_pcd_from_ply(filename, cloud)){
-//        vcl_cout<< "Errorr: Custom PLY reader failed too\n";
+//        cout<< "Errorr: Custom PLY reader failed too\n";
 //        return false;
 //      }
 //    }
     normals_pcd_from_ply(filename, cloud);
   }
   else {
-    vcl_cout << "File type not supported: " << file_type << vcl_endl;
+    cout << "File type not supported: " << file_type << endl;
     return false;
   }
   
   
-  vcl_cout << " Done:" <<  cloud->width * cloud->height << " point" << vcl_endl;
-  vcl_cout << "Available dimensions: " << getFieldsList(*cloud).c_str () << vcl_endl;
-  vcl_cout << "First point: " << cloud->points[0] << vcl_endl;
+  cout << " Done:" <<  cloud->width * cloud->height << " point" << endl;
+  cout << "Available dimensions: " << getFieldsList(*cloud).c_str () << endl;
+  cout << "First point: " << cloud->points[0] << endl;
   
   return true;
 }
 
 
 //: The PLY reader of PCL is rather strict, so lets load the cloud on our own
-bool vpcl_io_util::normals_pcd_from_ply(const vcl_string &filename, pcl::PointCloud<pcl::PointNormal>::Ptr cloud)
+bool vpcl_io_util::normals_pcd_from_ply(const string &filename, pcl::PointCloud<pcl::PointNormal>::Ptr cloud)
 {
   ply_normals_reader parsed_ply;
   parsed_ply.cloud = cloud;
   
   p_ply ply = ply_open(filename.c_str(), NULL, 0, NULL);
   if (!ply) {
-    vcl_cout << "File " << filename << " doesn't exist.";
+    cout << "File " << filename << " doesn't exist.";
     return false;
   }
   if (!ply_read_header(ply)){
-    vcl_cout << "File " << filename << " doesn't have header.";
+    cout << "File " << filename << " doesn't have header.";
     return false;
   }
   
@@ -67,6 +67,9 @@ bool vpcl_io_util::normals_pcd_from_ply(const vcl_string &filename, pcl::PointCl
   ply_set_read_cb(ply, "vertex", "nx", plyio_vertex_cb, (void*) (&parsed_ply), 3);
   ply_set_read_cb(ply, "vertex", "ny", plyio_vertex_cb, (void*) (&parsed_ply), 4);
   ply_set_read_cb(ply, "vertex", "nz", plyio_vertex_cb, (void*) (&parsed_ply), 5);
+  ply_set_read_cb(ply, "vertex", "normal_x", plyio_vertex_cb, (void*) (&parsed_ply), 3);
+  ply_set_read_cb(ply, "vertex", "normal_y", plyio_vertex_cb, (void*) (&parsed_ply), 4);
+  ply_set_read_cb(ply, "vertex", "normal_z", plyio_vertex_cb, (void*) (&parsed_ply), 5);
 
   
   // Read DATA
@@ -118,4 +121,61 @@ int vpcl_io_util::plyio_vertex_cb(p_ply_argument argument)
       assert(!"This should not happen: index out of range");
   }
   return 1;
+}
+
+
+//load correspondences from file - comma separated
+pcl::CorrespondencesPtr vpcl_io_util::loadCorrespondences(const string& name)
+{
+  pcl::CorrespondencesPtr corrs(new pcl::Correspondences);
+  
+  //load from file
+  ifstream file(name.c_str());
+  if (file.is_open())
+  {
+    string line;
+    while ( file.good() ) {
+      getline (file,line);
+      vector<string> strNums = split(line);
+      if(strNums.size()<3)
+        continue;
+      int index_query = fromString<int>(strNums[0]);
+      int index_match = fromString<int>(strNums[1]);
+      float distance  = fromString<float>(strNums[2]);
+      pcl::Correspondence corr(index_query, index_match, distance);
+      corrs->push_back(corr);
+    }
+    file.close();
+  }
+  else {
+    cout << "Unable to open correspondence file "<<name<<endl;
+  }
+  return corrs;
+}
+
+
+//save correspondences to text file
+void vpcl_io_util::saveCorrespondences(const string& name, pcl::CorrespondencesPtr corrs )
+{
+  ofstream file;
+  file.open (name.c_str());
+  for(int i=0; i<corrs->size(); ++i) {
+    file << corrs->at(i) << '\n';
+  }
+  file.close();
+}
+
+//String split helper methods....
+vector<string>& vpcl_io_util::split(const string &s, char delim, vector<string> &elems) {
+  stringstream ss(s);
+  string item;
+  while(getline(ss, item, delim)) {
+    elems.push_back(item);
+  }
+  return elems;
+}
+
+vector<string> vpcl_io_util::split(const string &s, char delim) {
+  vector<string> elems;
+  return split(s, delim, elems);
 }

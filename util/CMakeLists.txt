@@ -9,9 +9,9 @@ set(sources
    )
       
 add_library(vpcl_util ${sources})
-link_directories(${PCL_LIBRARY_DIRS})
+link_directories(${PCL_LIBRARY_DIRS}, ${Boost_LIBRARY_DIRS})
 
-target_link_libraries( vpcl_util  ${PCL_COMMON_LIBRARY}  ${PCL_SEARCH_LIBRARY}  ${PCL_KDTREE_LIBRARY} ${PCL_FEATURES_LIBRARY} ${PCL_FILTERS_LIBRARY}   pcl_kdtree rply)
+target_link_libraries( vpcl_util  ${PCL_COMMON_LIBRARY}  ${PCL_SEARCH_LIBRARY}  ${PCL_KDTREE_LIBRARY} ${PCL_FEATURES_LIBRARY} ${PCL_FILTERS_LIBRARY}   pcl_kdtree pcl_io rply ${Boost_SYSTEM_LIBRARY})
     
   
 
