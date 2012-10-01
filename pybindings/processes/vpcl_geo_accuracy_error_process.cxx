@@ -95,10 +95,7 @@ bool vpcl_geo_accuracy_error_process(bprb_func_process& pro)
     PointCloud<PointXYZ>::Ptr geo_estimate_cloud(new PointCloud<PointXYZ>);
     vpcl_io_util::load_cloud<PointXYZ>(estimate_ply.str(), geo_estimate_cloud);
     
-    // Geo register the estimated point cloid
-//    PointCloud<PointXYZ>::Ptr geo_estimate_cloud(new PointCloud<PointXYZ>);
-//    transformPointCloud (*estimate_cloud, *geo_estimate_cloud, GeoTform);
-    
+   
     // Vectors to hold knn search results
     std::vector<int> nn_indices (1);
     std::vector<float> nn_dists (1);
