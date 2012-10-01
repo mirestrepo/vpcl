@@ -23,7 +23,7 @@
 #include <pcl/common/centroid.h>
 
 //:global variables
-namespace vpcl_register_icp_scale_process.cxx_globals 
+namespace vpcl_register_icp_scale_process_globals 
 {
   const unsigned n_inputs_ = 9;
   const unsigned n_outputs_ = 0;
@@ -31,9 +31,9 @@ namespace vpcl_register_icp_scale_process.cxx_globals
 
 
 //:sets input and output types
-bool vpcl_register_icp_scale_process.cxx_cons(bprb_func_process& pro)
+bool vpcl_register_icp_scale_process_cons(bprb_func_process& pro)
 {
-  using namespace vpcl_register_icp_scale_process.cxx_globals ;
+  using namespace vpcl_register_icp_scale_process_globals ;
   
   vcl_vector<vcl_string> input_types_(n_inputs_);
   unsigned i =0;
@@ -54,9 +54,9 @@ bool vpcl_register_icp_scale_process.cxx_cons(bprb_func_process& pro)
 
 
 //:the process
-bool vpcl_register_icp_scale_process.cxx(bprb_func_process& pro)
+bool vpcl_register_icp_scale_process(bprb_func_process& pro)
 {
-  using namespace vpcl_register_icp_scale_process.cxx_globals;
+  using namespace vpcl_register_icp_scale_process_globals;
   
   pcl::console::setVerbosityLevel(console::L_DEBUG);
   
@@ -81,9 +81,9 @@ bool vpcl_register_icp_scale_process.cxx(bprb_func_process& pro)
   
   //Load input point clouds
   PointCloud<PointNormal>::Ptr src_points(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(src_fname, src_points);
+  vpcl_io_util::load_cloud<PointNormal>(src_fname, src_points);
   PointCloud<PointNormal>::Ptr tgt_points(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(tgt_fname, tgt_points);
+  vpcl_io_util::load_cloud<PointNormal>(tgt_fname, tgt_points);
 
   bool converged = false;
   double score = -1.0;
