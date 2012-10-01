@@ -208,10 +208,12 @@ int main(int argc, char *argv[])
   ///////////////////////////////////////////////////////////////////
   //Generate a random scale                                        //
   ///////////////////////////////////////////////////////////////////
-  double S = double(rnd.lrand32(1, 100));
-  int shrink = rnd.lrand32 (0,1);
-  if(shrink)
-    S = 1.0/S;
+//  double S = double(rnd.lrand32(1, 1));
+//  int shrink = rnd.lrand32 (0,1);
+//  if(shrink)
+//    S = 1.0/S;
+  
+  double S = 1.0;
   
   cout << "Transformation: \nScale = " << S << "\nR = " << R.as_matrix() << "\nt = " << T << '\n';
 
