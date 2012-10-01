@@ -1,6 +1,6 @@
 //:
-// \brief
 // \file
+// \brief A process to export .ply point cloud to .pcd format
 // \author Isabel Restrepo
 // \date 9/18/12
 
@@ -9,12 +9,17 @@
 
 #include <brdb/brdb_value.h>
 
+#include <pcl/point_types.h>
+
+#include <util/vpcl_io_util.h>
+
+using namespace std;
 
 //:global variables
 namespace vpcl_ply2pcd_process_globals 
 {
-  const unsigned n_inputs_ = ;
-  const unsigned n_outputs_ =;
+  const unsigned n_inputs_ = 4;
+  const unsigned n_outputs_ = 0;
 }
 
 
@@ -24,10 +29,13 @@ bool vpcl_ply2pcd_process_cons(bprb_func_process& pro)
   using namespace vpcl_ply2pcd_process_globals ;
   
   vcl_vector<vcl_string> input_types_(n_inputs_);
-  input_types_[0] = ;
-  
-  vcl_vector<vcl_string> output_types_(n_outputs_);
-  output_types_[0] = ;
+  unsigned i =0;
+  input_types_[i++] = "vcl_string";
+  input_types_[i++] = "vcl_string";
+  input_types_[i++] = "vcl_string";
+  input_types_[i++] = "bool";
+
+  vcl_vector<string> output_types_(n_outputs_);
   
   return pro.set_input_types(input_types_) && pro.set_output_types(output_types_);
 }
@@ -37,13 +45,50 @@ bool vpcl_ply2pcd_process_cons(bprb_func_process& pro)
 bool vpcl_ply2pcd_process(bprb_func_process& pro)
 {
   using namespace vpcl_ply2pcd_process_globals;
+  using namespace pcl;
   
   //get inputs
-  vcl_string fname = pro.get_input<vcl_string>(0);
+  unsigned i =0;
+  string ply_file = pro.get_input<vcl_string>(i++);
+  string pcd_file = pro.get_input<vcl_string>(i++);
+  string point_type = pro.get_input<vcl_string>(i++);
+  bool binary_mode = pro.get_input<bool>(i++);
   
+  //create and read from file the input point cloud
+  if (point_type == "PointNormal") {
+    PointCloud<PointNormal>::Ptr cloud(new PointCloud<PointNormal>);
+    vpcl_io_util::load_cloud<PointNormal>(ply_file, cloud);
+    string file_type = vul_file::extension(pcd_file);
+    if (file_type == ".pcd") {
+      if (pcl::io::savePCDFile (pcd_file, *cloud, binary_mode) < 0)
+        return (false);
+    }
+    else {
+      cout << "Output file type not supported: " << file_type << endl;
+      return false;
+    }
+  }
+  else if (point_type == "PointXYZ") {
+    PointCloud<PointXYZ>::Ptr cloud(new PointCloud<PointXYZ>);
+    vpcl_io_util::load_cloud<PointXYZ>(ply_file, cloud);
+    string file_type = vul_file::extension(pcd_file);
+    if (file_type == ".pcd") {
+      if (pcl::io::savePCDFile (pcd_file, *cloud, binary_mode) < 0)
+        return (false);
+    }
+    else {
+      cout << "Output file type not supported: " << file_type << endl;
+      return false;
+    }
+  }
+  else {
+    vcl_cerr << "Unsupported Feature or Point Types" <<vcl_endl;
+    
+    return false;
+  }
+
+
   
-  //store output
-  pro.set_output_val<boxm_scene_base_sptr>(0, output);
   
   return true;
 }
