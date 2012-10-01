@@ -68,34 +68,6 @@ bool vpcl_geo_accuracy_error_process(bprb_func_process& pro)
   vcl_string root_dir = pro.get_input<vcl_string>(i++);
   // Basename to .ply file to estimate errors -- root_dir/trial_x/estimate_geo_ply_filename
   vcl_string estimate_geo_ply_filename = pro.get_input<vcl_string>(i++);  //PLY file
-  // Optional transformation -- this could be a geo transformation
-//  Eigen::Matrix4f GeoTform;
-//  GeoTform.setIdentity ();
-//  vcl_string Tfile = "";
-//  Tfile = pro.get_input<vcl_string>(i++);
-//  if (Tfile !="") {
-//    //Load the transformation
-//    vcl_ifstream Tfile_ss(Tfile.c_str());
-//    if(!Tfile_ss.is_open()){
-//      vcl_cerr << "Error: Could not open Transformation file: " << Tfile << "\n";
-//      return false;
-//	  }
-//    double scale = 0;
-//    vnl_quaternion<double> q;
-//    vnl_vector_fixed<double, 3> t;
-//    Tfile_ss >> scale;
-//    Tfile_ss >> q;
-//    vgl_rotation_3d<double> R(q);
-//    Tfile_ss >> t;
-//    
-//    vcl_cout << "Done reading transformation: scale = " << scale << "\nR = " << R << "\nt = " << t << vcl_endl;
-//    vnl_matrix_fixed<double, 3,3> rr = R.as_matrix();
-//    rr = scale * rr;
-//    t = scale * t;
-//    GeoTform(0,0) = rr(0,0); GeoTform(0,1) = rr(0,1); GeoTform(0,2) = rr(0,2); GeoTform(0,3) = t(0);
-//    GeoTform(1,0) = rr(1,0); GeoTform(1,1) = rr(1,1); GeoTform(1,2) = rr(1,2); GeoTform(1,3) = t(1);
-//    GeoTform(2,0) = rr(2,0); GeoTform(2,1) = rr(2,1); GeoTform(2,2) = rr(2,2); GeoTform(2,3) = t(2);
-//  }
   
   // Number of trials trial_x s.t x \in [0, ntrials)
   int ntrials = pro.get_input<int>(i++);
