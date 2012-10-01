@@ -35,111 +35,27 @@ using namespace std;
 namespace vpcl_io_util{
    
   //: Load cloud. If extesnsion is .pcd, PCL reader is used. For .ply we use our custom reader
-  bool load_cloud (const string &filename, pcl::PointCloud<pcl::PointNormal>::Ptr cloud);
-  
+  template <class PointType>
+  bool  load_cloud (const string &filename, typename pcl::PointCloud<PointType>::Ptr cloud);
   
   //: Save descriptor as txt
   template <typename DescriptorType>
-  bool save_descriptors_as_txt(const string &filename, typename pcl::PointCloud<DescriptorType>::Ptr cloud)
-  {
-#ifdef PCL_1_6
-    cout << "Saving to: " << filename <<endl;
-      
-    string file_type = vul_file::extension(filename);
-   
-    if (file_type == ".txt"){    
-      ofstream  fos(filename.c_str());
-      fos << cloud->size() << "\n";
-      for(int i=0;i<cloud->size();i++)
-      {
-        for(int j=0;j<cloud->points[i].descriptor.size();j++)
-				{
-					fos << cloud->points[i].descriptor[j] << " ";
-				}
-        fos << "\n";
-      }
-			fos.close();
-      cout << " Done saving descriptor cloud to file" << endl; 
-      return true;
-    } else {
-      cout << "File type not supported: " << file_type << endl;
-      return false;
-    }
-#else
-    cout << "save_descriptors_as_txt has not been implemented for this version of PCL " <<endl;
-#endif
-  }
+  bool save_descriptors_as_txt(const string &filename, typename pcl::PointCloud<DescriptorType>::Ptr cloud);
+
   
   //: For PCL version < 1.7 - Some histogram based descriptors did not have a native PCD writer
   template <typename DescriptorType, int DIM>
-  bool save_histogram_as_txt(const string &filename, typename pcl::PointCloud<DescriptorType>::Ptr cloud)
-  {
-    cout << "Saving to: " << filename <<endl;
-      
-    string file_type = vul_file::extension(filename);
-    
-    if (file_type == ".txt"){    
-      ofstream  fos(filename.c_str());
-      fos << cloud->size() << "\n";
-      for(int i=0;i<cloud->size();i++)
-      {
-        for(int j=0;j<DIM;j++)
-				{
-					fos << cloud->points[i].histogram[j] << " ";
-				}
-        fos << "\n";
-      }
-			fos.close();
-      cout << " Done saving descriptor cloud to file" << endl; 
-      return true;
-    } else {
-      cout << "File type not supported: " << file_type << endl;
-      return false;
-    }
-  }
+  bool save_histogram_as_txt(const string &filename, typename pcl::PointCloud<DescriptorType>::Ptr cloud);
+
   
   //: Save cloud. If extesnsion is .pcd, PCL writer is used. For .txt we use our custom writer
   //  This is the version used for decriptors that save a histogram inside
   template <typename DescriptorType, int DIM >
-  bool save_cloud (const string &filename, typename pcl::PointCloud<DescriptorType>::Ptr cloud, bool binary_mode = false )
-  {
-    cout << "Saving: " << filename <<endl;
-    
-    string file_type = vul_file::extension(filename);
-    if (file_type == ".pcd") {
-      if (pcl::io::savePCDFile (filename, *cloud, binary_mode) < 0)
-        return (false);
-    }
-    else if (file_type == ".txt"){
-      if(!save_histogram_as_txt<DescriptorType, DIM>(filename, cloud))
-        return false;
-    }
-    else {
-      cout << "File type not supported: " << file_type << endl;
-      return false;
-    }
-  }
+  bool save_cloud (const string &filename, typename pcl::PointCloud<DescriptorType>::Ptr cloud, bool binary_mode = false );
   
   //: Save cloud. If extesnsion is .pcd, PCL writer is used. For .txt we use our custom writer
   template <typename DescriptorType >
-  bool save_cloud (const string &filename, typename pcl::PointCloud<DescriptorType>::Ptr cloud, bool binary_mode = false )
-  {
-    cout << "Saving: " << filename <<endl;
-    
-    string file_type = vul_file::extension(filename);
-    if (file_type == ".pcd") {
-      if (pcl::io::savePCDFile (filename, *cloud, binary_mode) < 0)
-        return (false);
-    }
-    else if (file_type == ".txt"){
-      if(!save_descriptors_as_txt<DescriptorType>(filename, cloud))
-        return false;
-    }
-    else {
-      cout << "File type not supported: " << file_type << endl;
-      return false;
-    }
-  }
+  bool save_cloud (const string &filename, typename pcl::PointCloud<DescriptorType>::Ptr cloud, bool binary_mode = false );
   
   template<class T>
   T fromString(const std::string& s)
@@ -159,9 +75,7 @@ namespace vpcl_io_util{
   //String split helper methods....
   vector<string>& split(const string &s, char delim, vector<string> &elems);
   vector<string> split(const string &s, char delim = ' ');
-  
-
-  
+   
   //: Load correspondances
   pcl::CorrespondencesPtr loadCorrespondences(const string& name);
   
@@ -169,20 +83,25 @@ namespace vpcl_io_util{
   void saveCorrespondences(const string& name, pcl::CorrespondencesPtr); 
   
   //: The PLY reader of PCL is rather strict, so lets load the cloud on our own
-  bool normals_pcd_from_ply(const string &filename, pcl::PointCloud<pcl::PointNormal>::Ptr cloud);
+  template <class PointType>
+  bool pcd_from_ply(const string &filename, typename pcl::PointCloud<PointType>::Ptr cloud);
   
   //: Call-back function for a "vertex" element
+  template <class PointType>
   int plyio_vertex_cb(p_ply_argument argument);
   
   //helper class to read in bb from file
+  template <class PointType>
   class ply_normals_reader
   {
   public:
-    pcl::PointCloud<pcl::PointNormal>::Ptr cloud;
-    pcl::PointNormal p;
+    typename pcl::PointCloud<PointType>::Ptr cloud;
+    PointType p;
   };
   
-  
 }
+
+//Add the implementations
+#include "vpcl_io_util.txx"
 
 #endif
