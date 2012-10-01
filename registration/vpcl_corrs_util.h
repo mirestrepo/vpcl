@@ -34,7 +34,8 @@ using namespace std;
 namespace vpcl
 {
   namespace correspondance
-  {
+  {    
+    // Generic find correspondances
     template <typename PointT>
     void findCorrespondences (const typename PointCloud<PointT>::Ptr &src,
                               const typename PointCloud<PointT>::Ptr &tgt,
@@ -98,7 +99,7 @@ namespace vpcl
                                    const PointCloud<PointNormal>::Ptr &src,
                                    const PointCloud<PointNormal>::Ptr &tgt,
                                    Correspondences &remaining_correspondences,
-                                   float max_dist);
+                                   double max_dist, double max_angle, bool reject_normals);
     
     
     // Look at descriptor and remove all NAN desciptors and the corresponding point
