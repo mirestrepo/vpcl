@@ -5,7 +5,7 @@ include_directories( rply/ )
 
 set(sources
     vpcl_features_util.h       vpcl_features_util.cxx
-    vpcl_io_util.h             vpcl_io_util.cxx
+    vpcl_io_util.h             vpcl_io_util.cxx         vpcl_io_util.txx
    )
       
 add_library(vpcl_util ${sources})
