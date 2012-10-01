@@ -109,6 +109,56 @@ namespace vpcl
     }
     
     
+//    typedef std::vector<Eigen::Vector4f,Eigen::aligned_allocator<Eigen::Vector4f> > Vector4f_v;
+//    typedef std::vector<Vector4f_v> Vector4f_v2D;
+//
+//
+//    
+//    template <typename PointSource, typename PointTarget> void
+//    getGeoErrors ( const typename PointCloud<PointSource>::Ptr  &fid_cloud,
+//                   Vector4f_v2D  &errors,
+//                   const typename PointCloud<PointTarget>::Ptr &estimate_cloud,
+//                   const Eigen::Matrix4f Tform,
+//                   double &rmse_x, double &rmse_y, double &rmse_z )
+//    {
+//      double fitness_score = 0.0;
+//      
+//      // Transform the input dataset using the final transformation
+//      PointCloud<PointSource> ec_transformed;
+//      transformPointCloud (*estimate_cloud, ec_transformed, Tform);
+//      
+//      std::vector<int> nn_indices (1);
+//      std::vector<float> nn_dists (1);
+//      
+//      // For each fiducial point      
+//      for (unsigned p_idx = 0; p_idx < fid_cloud.points.size(); p_idx++)
+//      {
+//              
+//        Eigen::Vector4f p_fid(fid_cloud.points[p_idx].x,
+//                              fid_cloud.points[p_idx].y,
+//                              fid_cloud.points[p_idx].z, 0);
+//        fid_points[p_idx];
+//        // Find its nearest neighbor in the target
+//        pcl::KdTreeFLANN<PointTarget> tree (true);
+//        
+//        tree.setInputCloud (ec_transformed);
+//        
+//        tree.nearestKSearch (p_fid, 1, nn_indices, nn_dists);
+//               
+//        Eigen::Vector4f p_est(ec_transformed->points[nn_indices[0]].x,
+//                              ec_transformed->points[nn_indices[0]].y,
+//                              ec_transformed->points[nn_indices[0]].z);
+//        
+//        // Calculate the fitness score
+//        Eigen::Vector4f p_delta = p_est - p_fid;
+//        
+//        errors[p_idx].push_back(p_delta);
+//
+//      }
+//      
+//    }
+
+    
   }
 }
 
