@@ -4,8 +4,19 @@
 
 #include <pcl/registration/ia_ransac.h>
 #include <pcl/registration/icp.h>
+#include <pcl/registration/default_convergence_criteria.h>
+#include <pcl/registration/transformation_estimation_lm.h>
+#include <pcl/visualization/pcl_visualizer.h>
+
 
 #include "vpcl_transform_util.h"
+#include "vpcl_corrs_util.h"
+
+using namespace pcl::registration;
+using namespace pcl::visualization;
+using namespace pcl::console;
+
+
 
 namespace vpcl {
 
@@ -243,7 +254,92 @@ namespace vpcl {
       
       return (icp.getFinalTransformation () * initial_alignment);
     }
+    
   
+  /* Use IterativeClosestPoint to find a precise alignment from the source cloud to the target cloud,
+   * starting with an intial guess
+   * Inputs:
+   *   source_points
+   *     The "source" points, i.e., the points that must be transformed to align with the target point cloud
+   *   target_points
+   *     The "target" points, i.e., the points to which the source point cloud will be aligned
+   *   transform
+   *     An initial estimate of the transformation matrix that aligns the source points to the target points
+   *   max_correspondence_distance
+   *     A threshold on the distance between any two corresponding points.  Any corresponding points that are further
+   *     apart than this threshold will be ignored when computing the source-to-target transformation
+   *   translation_threshold
+   *     The smallest iterative translation change allowed before the algorithm is considered to have converged
+   *   rotation_threshold
+   *     The smallest iterative rotation change allowed before the algorithm is considered to have converged
+   *   max_iterations
+   *     The maximum number of  iterations to perform
+   * Note: This method allows more flexibility on the rejection/transformation steps than
+   */
+  template <typename PointT>
+  int
+  icp_with_rejection (const typename pcl::PointCloud<PointT>::Ptr &src,
+       const typename pcl::PointCloud<PointT>::Ptr &tgt,
+       Eigen::Matrix4d &transform,
+       int max_iterations, double translation_threshold, double rotation_threshold,
+       double max_corrs_distance, bool rejection, double max_normal_angle = 90, bool reject_normals = false, bool use_lm = false)
+  {
+    CorrespondencesPtr all_correspondences (new Correspondences),
+    good_correspondences (new Correspondences);
+    
+    typename PointCloud<PointT>::Ptr output (new PointCloud<PointT>);
+    *output = *src;
+    
+    Eigen::Matrix4d final_transform (Eigen::Matrix4d::Identity ());
+    
+    int iterations = 0;
+    DefaultConvergenceCriteria<double> icp_convergance (iterations, transform, *good_correspondences);
+    
+    icp_convergance.setMaximumIterations (max_iterations);
+    icp_convergance.setTranslationThreshold (translation_threshold);
+    icp_convergance.setRotationThreshold (rotation_threshold);
+    
+    // ICP loop
+    do
+    {
+      // Find correspondences
+      vpcl::correspondance::findCorrespondences<PointT> (output, tgt, *all_correspondences);
+      PCL_DEBUG ("Number of correspondences found: %d\n", all_correspondences->size ());
+      
+      if (rejection)
+      {
+        // Reject correspondences
+        vpcl::correspondance::rejectBadCorrespondences (all_correspondences, output, tgt, *good_correspondences, max_corrs_distance, max_normal_angle, reject_normals);
+      }
+      else
+        *good_correspondences = *all_correspondences;
+      
+      // Find transformation
+      if (use_lm) {
+        pcl::registration::TransformationEstimationLM<PointNormal, PointNormal, double> trans_est_lm;
+        trans_est_lm.estimateRigidTransformation (*output, *tgt, *good_correspondences, transform);
+      }
+      else {
+        pcl::registration::TransformationEstimationSVD<PointNormal, PointNormal, double> trans_est_svd;
+        trans_est_svd.estimateRigidTransformation (*output, *tgt, *good_correspondences, transform);
+      }
+          
+      // Obtain the final transformation
+      final_transform = transform * final_transform;
+      
+      // Transform the data
+      transformPointCloudWithNormals (*src, *output, final_transform.cast<float> ());
+      
+      // Check if convergence has been reached
+      ++iterations;
+      
+    }
+    while (!icp_convergance);
+    transform = final_transform;
+    return iterations;
+  }
+  
+
   
   template <typename PointSource, typename PointTarget>
   double
