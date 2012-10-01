@@ -112,9 +112,9 @@ main (int argc, char** argv)
   
   //Load input point clouds
   PointCloud<PointNormal>::Ptr src(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(argv[1], src);
+  vpcl_io_util::load_cloud<PointNormal>(argv[1], src);
   PointCloud<PointNormal>::Ptr tgt(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(argv[2], tgt);
+  vpcl_io_util::load_cloud<PointNormal>(argv[2], tgt);
 
   cout<<"red Cloud: "<<argv[1]<<endl;
   cout<<"blue Cloud: "<<argv[2]<<endl;

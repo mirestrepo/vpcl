@@ -84,25 +84,28 @@ bool vpcl_register_ia_process(bprb_func_process& pro)
   
   //Load input point clouds
   PointCloud<PointNormal>::Ptr src_points(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(src_fname, src_points);
+  vpcl_io_util::load_cloud<PointNormal>(src_fname, src_points);
   PointCloud<PointNormal>::Ptr tgt_points(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(tgt_fname, tgt_points);
+  vpcl_io_util::load_cloud<PointNormal>(tgt_fname, tgt_points);
   
   CorrespondencesPtr correspondences (new Correspondences);
   Eigen::Matrix4f tform;
   console::TicToc tt;
-  double corrs_time, scale_time, trans_time = 0.0;
+  double trans_time = 0.0;
   
   //Load descriptos
   if (descriptor_type == "FPFH") {
     typedef FPFHSignature33 FeatureType;
     
+    cout << "Loading Descriptors" << endl;
     PointCloud<FeatureType>::Ptr src_descriptors(new PointCloud<FeatureType>);
     if (pcl::io::loadPCDFile (src_features_fname, *src_descriptors) < 0)
       return (false);
     PointCloud<FeatureType>::Ptr tgt_descriptors(new PointCloud<FeatureType>);
     if (pcl::io::loadPCDFile (tgt_features_fname, *tgt_descriptors) < 0)
       return (false);
+    cout << "Done Loading Descriptors" << endl;
+
     
     cout << "Applying Scale: " << scale << endl;
     
@@ -120,7 +123,7 @@ bool vpcl_register_ia_process(bprb_func_process& pro)
                                                                         (float)min_sample_dist, (float)max_correspondence_dist,
                                                                         nr_iters, tform);
     trans_time = tt.toc();
-    pcl::console::print_info ("Computed initial alignment\n");
+    cout << "Computed initial alignment\n";
       
   }
   if (descriptor_type == "SHOT") {
@@ -138,8 +141,7 @@ bool vpcl_register_ia_process(bprb_func_process& pro)
     
     cout << "Done Loading Descriptors" << endl;
 
-    tt.tic();
-    
+   
     //remove possible NAN descriptors
     std::vector<int> indeces_src;
     vpcl::correspondance::removeNaNDescriptors<PointNormal, FeatureType, 352>(*src_points, *src_descriptors, *src_points, *src_descriptors, indeces_src);
@@ -164,7 +166,7 @@ bool vpcl_register_ia_process(bprb_func_process& pro)
                                                                         (float)min_sample_dist, (float)max_correspondence_dist,
                                                                         nr_iters, tform);
     trans_time = tt.toc();
-    pcl::console::print_info ("Computed initial alignment\n");
+    cout << "Computed initial alignment\n";
     
   }
    
@@ -174,7 +176,7 @@ bool vpcl_register_ia_process(bprb_func_process& pro)
     
   // Save output
   pcl::io::savePCDFile (tform_cloud_fname, *src_points); 
-  pcl::console::print_info ("Saved registered clouds as %s\n", tform_cloud_fname.c_str ());
+  cout << "Saved registered clouds as: " <<  tform_cloud_fname << endl;
    
   ofstream ofs(tform_fname.c_str());
   ofs << scale << '\n'
@@ -188,7 +190,7 @@ bool vpcl_register_ia_process(bprb_func_process& pro)
   
   ofstream time_ofs;
   time_ofs.open(time_fname.c_str());
-  time_ofs << "Corrs time: " << corrs_time << "\nTrans Time: " << trans_time;
+  time_ofs << "Trans Time: " << trans_time;
   ofs.close();
   
   vpcl_io_util::saveCorrespondences(corr_fname, correspondences);

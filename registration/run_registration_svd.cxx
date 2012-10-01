@@ -32,9 +32,9 @@ main (int argc, char ** argv)
   
   // Load the points
   PointCloud<PointNormal>::Ptr src_points(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(argv[1], src_points);
+  vpcl_io_util::load_cloud<PointNormal>(argv[1], src_points);
   PointCloud<PointNormal>::Ptr tgt_points(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(argv[2], tgt_points);
+  vpcl_io_util::load_cloud<PointNormal>(argv[2], tgt_points);
   
   //Globals to keep cumulative scale and transfomation
   Eigen::Matrix4f tform = Eigen::Matrix4f::Identity ();

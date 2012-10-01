@@ -72,9 +72,9 @@ bool vpcl_feature_based_rigid_transform_process(bprb_func_process& pro)
   
   //Load input point clouds
   PointCloud<PointNormal>::Ptr src(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(src_fname, src);
+  vpcl_io_util::load_cloud<PointNormal>(src_fname, src);
   PointCloud<PointNormal>::Ptr tgt(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(tgt_fname, tgt);
+  vpcl_io_util::load_cloud<PointNormal>(tgt_fname, tgt);
   
   CorrespondencesPtr correspondences (new Correspondences);
   float S = 0.0f;

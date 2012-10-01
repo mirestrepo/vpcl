@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
   
   //create and read from file the input point cloud
   PointCloud<PointNormal>::Ptr src(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(src_file, src);
+  vpcl_io_util::load_cloud<PointNormal>(src_file, src);
 //  PointCloud<FeatureType>::Ptr src_fpfh(new PointCloud<FeatureType>);
 //  estimate_FPFH(src, src_fpfh);
   

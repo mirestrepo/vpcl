@@ -104,7 +104,7 @@ bool vpcl_compute_spin_image_process(bprb_func_process& pro)
 
   //create and read from file the input point cloud
   PointCloud<PointNormal>::Ptr cloud_in(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(cloud_in_file, cloud_in);
+  vpcl_io_util::load_cloud<PointNormal>(cloud_in_file, cloud_in);
 
   PointCloud<Histogram<SPIN_DIM> >::Ptr cloud_out(new PointCloud<Histogram<SPIN_DIM> >);
 

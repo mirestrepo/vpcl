@@ -34,9 +34,9 @@ main (int argc, char ** argv)
   
   // Load the points
   PointCloud<PointNormal>::Ptr src_points(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(argv[1], src_points);
+  vpcl_io_util::load_cloud<PointNormal>(argv[1], src_points);
   PointCloud<PointNormal>::Ptr tgt_points(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(argv[2], tgt_points);
+  vpcl_io_util::load_cloud<PointNormal>(argv[2], tgt_points);
   
   //Globals to keep cumulative scale and transfomation
   Eigen::Matrix4f tform = Eigen::Matrix4f::Identity ();
@@ -115,7 +115,7 @@ main (int argc, char ** argv)
                                                                         (float)min_sample_dist, (float)max_correspondence_dist,
                                                                         nr_iters, tform);
     
-    pcl::console::print_info ("Computed initial alignment\n");
+    cout << "Computed initial alignment\n";
   }
   
   // Refine the initial alignment
@@ -135,7 +135,7 @@ main (int argc, char ** argv)
                                                          outlier_rejection_threshold, transformation_epsilon, 0.0, (float)max_iterations,
                                                          20, 1.0, scale, tform);
        
-    pcl::console::print_info ("Refined alignment\n");
+    cout <<"Refined alignment\n";
   }
   
   // Transform the source point to align them with the target points
@@ -150,7 +150,7 @@ main (int argc, char ** argv)
     // Save the result
     pcl::io::savePCDFile (filename, *src_points);
     
-    pcl::console::print_info ("Saved registered clouds as %s\n", filename.c_str ());
+    cout << "Saved registered clouds as: " << filename.c_str () << endl;;
   }
   // Or visualize the result
   else

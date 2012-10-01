@@ -81,9 +81,9 @@ bool vpcl_register_ia_scale_process(bprb_func_process& pro)
   
   //Load input point clouds
   PointCloud<PointNormal>::Ptr src_points(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(src_fname, src_points);
+  vpcl_io_util::load_cloud<PointNormal>(src_fname, src_points);
   PointCloud<PointNormal>::Ptr tgt_points(new PointCloud<PointNormal>);
-  vpcl_io_util::load_cloud(tgt_fname, tgt_points);
+  vpcl_io_util::load_cloud<PointNormal>(tgt_fname, tgt_points);
   
   CorrespondencesPtr correspondences (new Correspondences);
   float scale = 0.0f;

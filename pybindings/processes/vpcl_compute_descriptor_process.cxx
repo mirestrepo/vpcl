@@ -108,7 +108,7 @@ bool vpcl_compute_descriptor_process(bprb_func_process& pro)
   if (point_type == "PointNormal") {
     //create and read from file the input point cloud
     PointCloud<PointNormal>::Ptr cloud_in(new PointCloud<PointNormal>);
-    vpcl_io_util::load_cloud(cloud_in_file, cloud_in);
+    vpcl_io_util::load_cloud<PointNormal>(cloud_in_file, cloud_in);
     if(descriptor_type == "FPFH")
     {
       //Estimation
