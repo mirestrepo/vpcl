@@ -2,8 +2,10 @@
 #include <bprb/bprb_macros.h>
 #include <bprb/bprb_batch_process_manager.h>
 
-// processes
+// processes and datatypes
 #include <pybindings/vpcl_register.h>
+#include <bbas_pro/bbas_register.h>
+
 
 PyObject *
 register_processes(PyObject *self, PyObject *args)

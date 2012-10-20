@@ -86,3 +86,40 @@ def register_icp(**kwargs):
   py_vpcl.set_input_bool(10, useLM);
     
   return py_vpcl.run_process();
+
+#********************************************************************
+#  Get RMS errors
+#********************************************************************
+def compute_rmse(**kwargs):
+  fidPath           = kwargs.get('fidPath');
+  trialRoot         = kwargs.get('trialRoot');
+  descName          = kwargs.get('descName');
+  estimateBasename  = kwargs.get('estimateBasename');
+  nTrials           = kwargs.get('nTrials');
+  tformFname        = kwargs.get('tformFname');
+
+  py_vpcl.init_process("vpcl_geo_accuracy_error_process");
+  py_vpcl.set_input_string(0, fidPath);
+  py_vpcl.set_input_string(1, trialRoot);
+  py_vpcl.set_input_string(2, descName);
+  py_vpcl.set_input_string(3, estimateBasename);
+  py_vpcl.set_input_int(4, nTrials);
+  py_vpcl.set_input_string(5, tformFname);
+
+  success = py_vpcl.run_process();
+  #get the outputs
+  id,type = py_vpcl.commit_output(0);
+  rmse_x = py_vpcl.get_bbas_1d_array_float(id);
+  (id,type) = py_vpcl.commit_output(1);
+  rmse_y = py_vpcl.get_bbas_1d_array_float(id);
+  (id,type) = py_vpcl.commit_output(2);
+  rmse_z = py_vpcl.get_bbas_1d_array_float(id);
+  (id,type) = py_vpcl.commit_output(3);
+  CE_90 = py_vpcl.get_bbas_1d_array_float(id);
+  (id,type) = py_vpcl.commit_output(4);
+  LE_90 = py_vpcl.get_bbas_1d_array_float(id);
+  (id,type) = py_vpcl.commit_output(5);
+  radius = py_vpcl.get_bbas_1d_array_float(id);
+  
+  return success, rmse_x, rmse_y, rmse_z, CE_90, LE_90, radius
+
