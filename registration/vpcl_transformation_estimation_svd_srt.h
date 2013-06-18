@@ -55,13 +55,17 @@ namespace vpcl
     using namespace pcl::registration;
 
     template <typename PointSource, typename PointTarget, typename Scalar = float>
-    class TransformationEstimationSVD_SRT : public TransformationEstimationSVDScale<PointSource, PointTarget, Scalar>
+    class TransformationEstimationSVD_SRT : public TransformationEstimationSVD<PointSource, PointTarget, Scalar>
     {
     public:
+      
+      //Constructor
+      TransformationEstimationSVD_SRT():sum_scale_(0.0f),num_scale_samples_(0), bound_scale_(false), max_scale_(0.0), min_scale_(0.0), num_scale_ob_(0){}
+      
       typedef typename TransformationEstimationSVD_SRT<PointSource, PointTarget, Scalar>::Matrix4 Matrix4;
       
       void
-      estimateRigidTransformation (const pcl::PointCloud<PointSource> &cloud_src,
+      estimateRigidTransformationSRT (const pcl::PointCloud<PointSource> &cloud_src,
                                    const pcl::PointCloud<PointTarget> &cloud_tgt,
                                    const pcl::Correspondences &correspondences,
                                    float &S,
@@ -69,9 +73,48 @@ namespace vpcl
                                    Eigen::Matrix<Scalar, 3, 1> &T,
                                    Eigen::Matrix<Scalar, 4, 4> &transformation_matrix) const;
 
+      double avg_scale() {return sum_scale_/(double)num_scale_samples_;}
       
+      /** \brief Force the scale seach to have lower and upper bounds
+       * \param[in] min_scale
+       * \param[in] max_scale
+       */
+      void set_scale_bounds (Scalar min_scale, Scalar max_scale)
+      {
+        this->bound_scale_ = true;
+        this->max_scale_ = max_scale;
+        this->min_scale_ = min_scale;
+        cout << "Bounding scale: (min, max) " << min_scale_ << ',' << max_scale_ << endl;
+      }
+      
+      
+      void reset_counters()
+      {
+        this->num_scale_samples_ = 0;
+        this->sum_scale_ = (Scalar)0.0;
+        this->num_scale_ob_ = 0;
+      }
+      
+      long int count_scale_out_of_bounds() {return num_scale_ob_; }
       
     protected:
+      
+      /** \brief Obtain a 4x4 rigid transformation matrix from a correlation matrix H = src * tgt'
+       * \param[in] cloud_src_demean the input source cloud, demeaned, in Eigen format
+       * \param[in] centroid_src the input source centroid, in Eigen format
+       * \param[in] cloud_tgt_demean the input target cloud, demeaned, in Eigen format
+       * \param[in] centroid_tgt the input target cloud, in Eigen format
+       * \param[out] transformation_matrix the resultant 4x4 rigid transformation matrix
+       */
+      virtual void
+      getTransformationFromCorrelation (const Eigen::MatrixXf &cloud_src_demean,
+                                        const Eigen::Vector4f &centroid_src,
+                                        const Eigen::MatrixXf &cloud_tgt_demean,
+                                        const Eigen::Vector4f &centroid_tgt,
+                                        Matrix4 &transformation_matrix) const;
+      
+      
+      
       /** \brief Obtain a 4x4 rigid transformation matrix from a correlation matrix H = src * tgt'
        * \param[in] cloud_src_demean the input source cloud, demeaned, in Eigen format
        * \param[in] centroid_src the input source centroid, in Eigen format
@@ -83,7 +126,7 @@ namespace vpcl
        * \param[out] transformation_matrix the resultant 4x4 rigid transformation matrix
        */
       void
-      getTransformationFromCorrelation (const Eigen::MatrixXf &cloud_src_demean,
+      getTransformationFromCorrelationSRT (const Eigen::MatrixXf &cloud_src_demean,
                                         const Eigen::Vector4f &centroid_src,
                                         const Eigen::MatrixXf &cloud_tgt_demean,
                                         const Eigen::Vector4f &centroid_tgt,
@@ -91,6 +134,14 @@ namespace vpcl
                                         Eigen::Matrix<Scalar, 3, 3> &R,
                                         Eigen::Matrix<Scalar, 3, 1> &T,
                                         Eigen::Matrix<Scalar, 4, 4> &transformation_matrix) const;
+      
+      mutable Scalar sum_scale_;
+      mutable long int num_scale_samples_;
+      mutable long int num_scale_ob_;
+      bool bound_scale_;
+      Scalar max_scale_;
+      Scalar min_scale_;
+      
     };
     
   }
@@ -98,9 +149,74 @@ namespace vpcl
 
 using namespace vpcl::registration;
 
+
+template <typename PointSource, typename PointTarget, typename Scalar>
+void TransformationEstimationSVD_SRT<PointSource, PointTarget, Scalar>::getTransformationFromCorrelation (
+                                                                                                          const Eigen::MatrixXf &cloud_src_demean,
+                                                                                                          const Eigen::Vector4f &centroid_src,
+                                                                                                          const Eigen::MatrixXf &cloud_tgt_demean,
+                                                                                                          const Eigen::Vector4f &centroid_tgt,
+                                                                                                          Matrix4 &transformation_matrix) const
+{
+  
+  transformation_matrix.setIdentity ();
+  
+  // Assemble the correlation matrix H = source * target'
+  Eigen::Matrix<Scalar, 3, 3> H = (cloud_src_demean.cast<Scalar> () * cloud_tgt_demean.cast<Scalar> ().transpose ()).topLeftCorner (3, 3);
+  
+  // Compute the Singular Value Decomposition
+  Eigen::JacobiSVD<Eigen::Matrix<Scalar, 3, 3> > svd (H, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  Eigen::Matrix<Scalar, 3, 3> u = svd.matrixU ();
+  Eigen::Matrix<Scalar, 3, 3> v = svd.matrixV ();
+  
+  // Compute R = V * U'
+  if (u.determinant () * v.determinant () < 0)
+  {
+    for (int x = 0; x < 3; ++x)
+      v (x, 2) *= -1;
+  }
+  
+  Eigen::Matrix<Scalar, 3, 3> R = v * u.transpose ();
+  
+  // rotated cloud
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> src_ = R * cloud_src_demean.cast<Scalar> ();
+  
+  float scale;
+  double sum_ss = 0.0f, sum_tt = 0.0f;
+  for (unsigned corrIdx = 0; corrIdx < cloud_src_demean.cols (); ++corrIdx)
+  {
+    sum_ss += cloud_src_demean (0, corrIdx) * cloud_src_demean (0, corrIdx);
+    sum_ss += cloud_src_demean (1, corrIdx) * cloud_src_demean (1, corrIdx);
+    sum_ss += cloud_src_demean (2, corrIdx) * cloud_src_demean (2, corrIdx);
+    
+    sum_tt += cloud_tgt_demean (0, corrIdx) * cloud_tgt_demean (0, corrIdx);
+    sum_tt += cloud_tgt_demean (1, corrIdx) * cloud_tgt_demean (1, corrIdx);
+    sum_tt += cloud_tgt_demean (2, corrIdx) * cloud_tgt_demean (2, corrIdx);
+  }
+  
+  scale = sqrt (sum_tt / sum_ss);
+  cout << "Scale: " << scale << endl;
+  sum_scale_ += scale;
+  num_scale_samples_++;
+  transformation_matrix.topLeftCorner (3, 3) = scale * R;
+  const Eigen::Matrix<Scalar, 3, 1> Rc (R * centroid_src.cast<Scalar> ().head (3));
+  transformation_matrix.block (0, 3, 3, 1) = centroid_tgt.cast<Scalar> (). head (3) - Rc;
+
+  //otherwise return identity transform
+  if(this->bound_scale_)
+  {
+    if (!(scale < max_scale_ && scale > min_scale_))
+    {
+      transformation_matrix.setZero ();
+      cout << "Scale out of bounds: " << num_scale_ob_++ << endl;
+    }
+  }
+}
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget, typename Scalar>
-void TransformationEstimationSVD_SRT<PointSource, PointTarget, Scalar>::estimateRigidTransformation (const pcl::PointCloud<PointSource> &cloud_src,
+void TransformationEstimationSVD_SRT<PointSource, PointTarget, Scalar>::estimateRigidTransformationSRT (const pcl::PointCloud<PointSource> &cloud_src,
                                                                                                        const pcl::PointCloud<PointTarget> &cloud_tgt,
                                                                                                        const pcl::Correspondences &correspondences,
                                                                                                        float &S,
@@ -125,11 +241,15 @@ void TransformationEstimationSVD_SRT<PointSource, PointTarget, Scalar>::estimate
   Eigen::MatrixXf cloud_tgt_demean;
   demeanPointCloud (cloud_tgt, indices_tgt, centroid_tgt, cloud_tgt_demean);
   
-  getTransformationFromCorrelation (cloud_src_demean, centroid_src, cloud_tgt_demean, centroid_tgt, S, R, T, transformation_matrix);
+  getTransformationFromCorrelationSRT (cloud_src_demean, centroid_src, cloud_tgt_demean, centroid_tgt, S, R, T, transformation_matrix);
 }
 
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 template <typename PointSource, typename PointTarget, typename Scalar>
-void TransformationEstimationSVD_SRT<PointSource, PointTarget, Scalar>::getTransformationFromCorrelation (const Eigen::MatrixXf &cloud_src_demean,
+void TransformationEstimationSVD_SRT<PointSource, PointTarget, Scalar>::getTransformationFromCorrelationSRT (const Eigen::MatrixXf &cloud_src_demean,
                                                                                                           const Eigen::Vector4f &centroid_src,
                                                                                                           const Eigen::MatrixXf &cloud_tgt_demean,
                                                                                                           const Eigen::Vector4f &centroid_tgt,

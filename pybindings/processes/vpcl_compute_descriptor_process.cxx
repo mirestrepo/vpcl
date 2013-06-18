@@ -103,6 +103,10 @@ bool vpcl_compute_descriptor_process(bprb_func_process& pro)
   int jobs =1;
   jobs = pro.get_input<int>(i++);
   
+  //upping the verbosity level to see some info
+  pcl::console::VERBOSITY_LEVEL vblvl = pcl::console::getVerbosityLevel();
+  pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
+  
   vcl_cout << "Number of jobs: " << jobs << vcl_endl;
   
   if (point_type == "PointNormal") {
@@ -128,7 +132,6 @@ bool vpcl_compute_descriptor_process(bprb_func_process& pro)
       extractor->compute (*descriptors);
       vcl_cout << "Done \n";
       //save ouput point cloud to file
-//      vpcl_io_util::save_histogram_as_txt<FeatureType, 33>(cloud_out_file, descriptors);
       vpcl_io_util::save_cloud<FeatureType, 33>(cloud_out_file, descriptors);
       vcl_string log_ext("_time_log.log");
       vcl_ofstream ofs;
@@ -159,8 +162,19 @@ bool vpcl_compute_descriptor_process(bprb_func_process& pro)
       vcl_cout << "Done \n";
       timer.print(vcl_cout);
       //save ouput point cloud to file
-      //vpcl_io_util::save_descriptors_as_txt<FeatureType>(cloud_out_file, descriptors);
-      vpcl_io_util::save_cloud<FeatureType>(cloud_out_file, descriptors, true);
+      string file_type = vul_file::extension(cloud_out_file);
+      if (file_type == ".pcd") {
+        if (pcl::io::savePCDFile (cloud_out_file, *descriptors, false) < 0)
+          return (false);
+      }
+      else if (file_type == ".txt"){
+        if(!vpcl_io_util::save_descriptors_as_txt<FeatureType, 352>(cloud_out_file, descriptors))
+          return false;
+      }
+      else {
+        cout << "File type not supported: " << file_type << endl;
+        return false;
+      }
       vcl_string log_ext("_time_log.log");
       vcl_ofstream ofs;
       ofs.open((vul_file::strip_extension(cloud_out_file.c_str()) + log_ext).c_str());
@@ -190,7 +204,7 @@ bool vpcl_compute_descriptor_process(bprb_func_process& pro)
       extractor.compute (*descriptors);
       vcl_cout << "Done \n";
       timer.print(vcl_cout);       //save ouput point cloud to file
-      vpcl_io_util::save_descriptors_as_txt<FeatureType>(cloud_out_file, descriptors);
+      vpcl_io_util::save_descriptors_as_txt<FeatureType, 1980>(cloud_out_file, descriptors);
       vcl_string log_ext("_time_log.log");
       vcl_ofstream ofs;
       ofs.open((vul_file::strip_extension(cloud_out_file.c_str()) + log_ext).c_str());

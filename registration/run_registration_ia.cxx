@@ -111,9 +111,10 @@ main (int argc, char ** argv)
     tform.setIdentity ();
 
     // Find the transform that roughly aligns the points
+    int nsamples = 3;
     vpcl::computeInitialAlignment<PointNormal,PointNormal,FeatureType> (src_scaled, src_descriptors, tgt_points, tgt_descriptors,
                                                                         (float)min_sample_dist, (float)max_correspondence_dist,
-                                                                        nr_iters, tform);
+                                                                        nr_iters, nsamples, tform);
     
     cout << "Computed initial alignment\n";
   }

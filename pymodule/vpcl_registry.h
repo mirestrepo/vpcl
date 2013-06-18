@@ -9,4 +9,3 @@ static PyMethodDef py_vpcl_methods[METHOD_NUM+2];
 
 
 #endif
-

@@ -7,7 +7,7 @@
 #############################################################################
 import py_vpcl;
 
-py_vpcl.not_verbose();
+py_vpcl.verbose();
 py_vpcl.register_processes();
 py_vpcl.register_datatypes();
 

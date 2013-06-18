@@ -18,6 +18,7 @@ register_processes(PyObject *self, PyObject *args)
 PyObject *
 register_datatypes(PyObject *self, PyObject *args)
 {
+  register_basic_datatypes();
   vpcl_register::register_datatype();
   Py_INCREF(Py_None);
   return Py_None;

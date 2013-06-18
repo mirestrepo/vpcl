@@ -25,7 +25,7 @@
 //:global variables
 namespace vpcl_register_icp_process_globals 
 {
-  const unsigned n_inputs_ = 11;
+  const unsigned n_inputs_ = 12;
   const unsigned n_outputs_ = 0;
 }
 
@@ -48,8 +48,7 @@ bool vpcl_register_icp_process_cons(bprb_func_process& pro)
   input_types_[i++] = "double";
   input_types_[i++] = "bool";
   input_types_[i++] = "bool";
-
-
+  input_types_[i++] = "bool";
   
   vcl_vector<vcl_string> output_types_(n_outputs_);
   
@@ -77,6 +76,8 @@ bool vpcl_register_icp_process(bprb_func_process& pro)
   double max_normal_angle = pro.get_input<double>(i++);
   bool reject_normals = pro.get_input<bool>(i++);
   bool use_lm = pro.get_input<bool>(i++);
+  bool compute_scale = pro.get_input<bool>(i++);
+
 
   
   cout <<  "\nSource: " << src_fname << "\nTarget : " << tgt_fname
@@ -86,7 +87,8 @@ bool vpcl_register_icp_process(bprb_func_process& pro)
   <<"\nmax_normal_angle: " << max_normal_angle
   <<"\nreject_normals: " << reject_normals
   <<"\nuse_lm: " << use_lm
-  << "\nmax_iterations: " <<max_iterations <<endl ;
+  << "\nmax_iterations: " <<max_iterations
+  << "ncompute_scale:" << compute_scale <<endl ;
   
   //Load input point clouds
   PointCloud<PointNormal>::Ptr src_points(new PointCloud<PointNormal>);
@@ -104,7 +106,7 @@ bool vpcl_register_icp_process(bprb_func_process& pro)
 //  tform = vpcl::refineAlignment<PointNormal,PointNormal> (src_points, tgt_points, tform, max_correspondence_dist,
 //                                                          outlier_rejection_threshold, transformation_epsilon, euclidean_epsilon, max_iterations, converged, score);
   
-  int iterations = vpcl::icp_with_rejection<PointNormal>(src_points, tgt_points, tform, max_iterations, translation_epsilon, rotation_epsilon, max_correspondence_dist, true,  max_normal_angle, reject_normals, use_lm);
+  int iterations = vpcl::icp_with_rejection<PointNormal>(src_points, tgt_points, tform, max_iterations, translation_epsilon, rotation_epsilon, max_correspondence_dist, true,  max_normal_angle, reject_normals, use_lm, compute_scale);
   
   double trans_time = tt.toc();
   pcl::console::print_info ("Refined alignment\n");

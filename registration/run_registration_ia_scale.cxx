@@ -122,7 +122,7 @@ main (int argc, char ** argv)
     
     // Find the transform that roughly aligns the points
     tt.tic();
-    double fitness_score = vpcl::computeInitialAlignmentScale<PointNormal,PointNormal,FeatureType> (src_points, src_descriptors, tgt_points, tgt_descriptors,
+    double fitness_score = vpcl::computeInitialAlignmentScaleBruteSearch<PointNormal,PointNormal,FeatureType> (src_points, src_descriptors, tgt_points, tgt_descriptors,
                                                                                                     (float)min_sample_dist, (float)max_correspondence_dist,
                                                                                                     nr_iters, 10, 1, scale, tform);
     tt.toc();

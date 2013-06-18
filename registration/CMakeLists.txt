@@ -33,4 +33,8 @@ target_link_libraries(run_registration_ia vpcl_reg pcl_visualization )
 ############################################################################
 add_executable(run_registration_svd run_registration_svd.cxx)
 target_link_libraries(run_registration_svd vpcl_reg pcl_visualization )
+############################################################################
+add_executable(compute_geo_cam_stats compute_geo_cam_stats)
+target_link_libraries(compute_geo_cam_stats vpcl_reg vul vnl)
+
 

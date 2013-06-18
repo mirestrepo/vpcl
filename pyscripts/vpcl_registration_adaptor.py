@@ -38,7 +38,12 @@ def register_ia_sac(**kwargs):
   minSampleDist = kwargs.get('minSampleDist');
   maxCorrDist   = kwargs.get('maxCorrDist');
   numIter       = kwargs.get('numIter', 200);
+  numSamples    = kwargs.get('numSamples', 3);
+  computescale  = kwargs.get('computeScale', False);
   scale         = kwargs.get('scale', 1.0);
+  boundScale    = kwargs.get('boundScale', False);
+  minScale      = kwargs.get('minScale', 0.0);
+  maxScale      = kwargs.get('maxScale', 0.0);
 
   py_vpcl.init_process("vpcl_register_ia_process");
   py_vpcl.set_input_string(0, srcFname);
@@ -51,8 +56,21 @@ def register_ia_sac(**kwargs):
   py_vpcl.set_input_double(7, minSampleDist);
   py_vpcl.set_input_double(8, maxCorrDist);
   py_vpcl.set_input_int(9, numIter);
-  py_vpcl.set_input_float(10, scale);
-  return py_vpcl.run_process();
+  py_vpcl.set_input_int(10, numSamples);
+  py_vpcl.set_input_bool(11, computescale);
+  py_vpcl.set_input_float(12, scale);
+  py_vpcl.set_input_bool(13, boundScale);
+  py_vpcl.set_input_float(14, minScale);
+  py_vpcl.set_input_float(15, maxScale);
+  py_vpcl.run_process();
+  #get the outputs
+  id,type = py_vpcl.commit_output(0);
+  ransac_scale = py_vpcl.get_output_float(id);
+  (id,type) = py_vpcl.commit_output(1);
+  avg_scale = py_vpcl.get_output_float(id);
+
+  return ransac_scale, avg_scale
+
 
 
 #********************************************************************
@@ -70,6 +88,7 @@ def register_icp(**kwargs):
   maxAngDist    = kwargs.get('maxAngDist', 90);
   rejectNormals = kwargs.get('rejectNormals', False);
   useLM         = kwargs.get('useLM', False);
+  computeScale  = kwargs.get('computeScale', False);
 
  
   py_vpcl.init_process("vpcl_register_icp_process");
@@ -84,6 +103,8 @@ def register_icp(**kwargs):
   py_vpcl.set_input_double(8, maxAngDist);
   py_vpcl.set_input_bool(9, rejectNormals);
   py_vpcl.set_input_bool(10, useLM);
+  py_vpcl.set_input_bool(11, computeScale);
+  
     
   return py_vpcl.run_process();
 

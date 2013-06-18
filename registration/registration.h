@@ -6,11 +6,14 @@
 #include <pcl/registration/icp.h>
 #include <pcl/registration/default_convergence_criteria.h>
 #include <pcl/registration/transformation_estimation_lm.h>
+#include <pcl/registration/transformation_estimation_svd_scale.h>
+
 #include <pcl/visualization/pcl_visualizer.h>
 
 
 #include "vpcl_transform_util.h"
 #include "vpcl_corrs_util.h"
+#include "vpcl_transformation_estimation_svd_srt.h"
 
 using namespace pcl::registration;
 using namespace pcl::visualization;
@@ -21,7 +24,7 @@ using namespace pcl::console;
 namespace vpcl {
 
     /* Use SampleConsensusInitialAlignment to find a rough alignment from the source cloud to the target cloud by finding
-     * correspondences between two sets of local features
+     * correspondences between two sets of local features. This function uses SVD to solve for the transfomation
      * Inputs:
      *   source_points
      *     The "source" points, i.e., the points that must be transformed to align with the target point cloud
@@ -44,7 +47,7 @@ namespace vpcl {
     double 
     computeInitialAlignment (const typename pcl::PointCloud<PointSource>::Ptr & source_points, const typename pcl::PointCloud<FeatureT>::Ptr & source_descriptors,
                              const typename pcl::PointCloud<PointTarget>::Ptr & target_points, const typename pcl::PointCloud<FeatureT>::Ptr & target_descriptors,
-                             float min_sample_distance, float max_correspondence_distance, int nr_iterations, Eigen::Matrix4f &Tresult)
+                             float min_sample_distance, float max_correspondence_distance, int nr_iterations, int nsamples, Eigen::Matrix4f &Tresult)
     {
       pcl::SampleConsensusInitialAlignment<PointSource, PointTarget, FeatureT> sac_ia;
       sac_ia.setMinSampleDistance (min_sample_distance);
@@ -57,13 +60,88 @@ namespace vpcl {
       sac_ia.setInputTarget (target_points);
       sac_ia.setTargetFeatures (target_descriptors);
       
+      typename boost::shared_ptr<pcl::registration::TransformationEstimationSVD<PointNormal, PointNormal, float> > te (new typename pcl::registration::TransformationEstimationSVD<PointNormal, PointNormal, float>);
+      
+      sac_ia.setTransformationEstimation(te);
+      sac_ia.setNumberOfSamples(nsamples);
+
       pcl::PointCloud<PointSource> registration_output;
       sac_ia.align (registration_output);
       
       Tresult = sac_ia.getFinalTransformation ();
       return sac_ia.getFitnessScore(); 
     }
+  
+  /* Use SampleConsensusInitialAlignment to find a rough alignment from the source cloud to the target cloud by finding
+   * correspondences between two sets of local features. This function uses SVD to solve for the transfomation
+   * Inputs:
+   *   source_points
+   *     The "source" points, i.e., the points that must be transformed to align with the target point cloud
+   *   source_descriptors
+   *     The local descriptors for each source point
+   *   target_points
+   *     The "target" points, i.e., the points to which the source point cloud will be aligned
+   *   target_descriptors
+   *     The local descriptors for each target point
+   *   min_sample_distance
+   *     The minimum distance between any two random samples
+   *   max_correspondence_distance
+   *     The
+   *   nr_interations
+   *     The number of RANSAC iterations to perform
+   * Return: A transformation matrix that will roughly align the points in source to the points in target
+   */
+  
+  template <typename PointSource, typename PointTarget,  typename FeatureT>
+  double
+  computeInitialAlignmentScale (const typename pcl::PointCloud<PointSource>::Ptr & source_points,
+                                const typename pcl::PointCloud<FeatureT>::Ptr & source_descriptors,
+                                const typename pcl::PointCloud<PointTarget>::Ptr & target_points,
+                                const typename pcl::PointCloud<FeatureT>::Ptr & target_descriptors,
+                                float min_sample_distance, float max_correspondence_distance,
+                                int nr_iterations, int nsamples,
+                                Eigen::Matrix4f &Tresult,
+                                float &ransac_scale, float &avg_scale,
+                                bool bound_scale=false, float min_scale=0.0f, float max_scale=0.0f)
+  {
+    pcl::SampleConsensusInitialAlignment<PointSource, PointTarget, FeatureT> sac_ia;
+    sac_ia.setMinSampleDistance (min_sample_distance);
+    sac_ia.setMaxCorrespondenceDistance (max_correspondence_distance);
+    sac_ia.setMaximumIterations (nr_iterations);
+    
+    sac_ia.setInputCloud (source_points);
+    sac_ia.setSourceFeatures (source_descriptors);
+    
+    sac_ia.setInputTarget (target_points);
+    sac_ia.setTargetFeatures (target_descriptors);
+    
+    cout << "SAC_IA using SDVScale" <<endl;
+    typename boost::shared_ptr<vpcl::registration::TransformationEstimationSVD_SRT<PointSource, PointTarget, float> > te (new typename vpcl::registration::TransformationEstimationSVD_SRT<PointSource, PointTarget, float>);
+    
+    if(bound_scale)
+      te->set_scale_bounds(min_scale, max_scale);
+    
+    sac_ia.setTransformationEstimation(te);
+    sac_ia.setNumberOfSamples(nsamples);
+    
 
+//    typedef typename pcl::SampleConsensusInitialAlignment<PointSource, PointTarget, FeatureT>::HuberPenalty Error;
+//    typename boost::shared_ptr<Error> ef(new Error(max_correspondence_distance));
+//    sac_ia.setErrorFunction(ef);
+    
+    
+    pcl::PointCloud<PointSource> registration_output;
+    sac_ia.align (registration_output);
+    
+    Tresult = sac_ia.getFinalTransformation ();
+    
+    double total_iter = nr_iterations + te->count_scale_out_of_bounds();
+    avg_scale = (float)te->avg_scale();
+    ransac_scale = (float)Tresult.topLeftCorner(3,3).col(0).norm(); //assumes isotropic scale
+    
+//    return sac_ia.getFitnessScore();
+    return total_iter;
+  }
   
   
   /* Use SampleConsensusInitialAlignment to find a rough alignment from the source cloud to the target cloud by finding
@@ -91,9 +169,13 @@ namespace vpcl {
   
   template <typename PointSource, typename PointTarget,  typename FeatureT>
   double
-  computeInitialAlignmentScale (const typename pcl::PointCloud<PointSource>::Ptr & source_points, const typename pcl::PointCloud<FeatureT>::Ptr & source_descriptors,
-                                const typename pcl::PointCloud<PointTarget>::Ptr & target_points, const typename pcl::PointCloud<FeatureT>::Ptr & target_descriptors,
-                                float min_sample_distance, float max_correspondence_distance, int sac_niter, int scale_niter, double iteration_scale_step,  double &scale,  Eigen::Matrix4f &Tresult)
+  computeInitialAlignmentScaleBruteSearch (const typename pcl::PointCloud<PointSource>::Ptr & source_points,
+                                           const typename pcl::PointCloud<FeatureT>::Ptr & source_descriptors,
+                                           const typename pcl::PointCloud<PointTarget>::Ptr & target_points,
+                                           const typename pcl::PointCloud<FeatureT>::Ptr & target_descriptors,
+                                           float min_sample_distance, float max_correspondence_distance,
+                                           int sac_niter, int scale_niter, double iteration_scale_step,
+                                           double &scale,  Eigen::Matrix4f &Tresult)
   {
     
     
@@ -282,7 +364,8 @@ namespace vpcl {
        const typename pcl::PointCloud<PointT>::Ptr &tgt,
        Eigen::Matrix4d &transform,
        int max_iterations, double translation_threshold, double rotation_threshold,
-       double max_corrs_distance, bool rejection, double max_normal_angle = 90, bool reject_normals = false, bool use_lm = false)
+       double max_corrs_distance, bool rejection, double max_normal_angle = 90,
+       bool reject_normals = false, bool use_lm = false, bool compute_scale=false)
   {
     CorrespondencesPtr all_correspondences (new Correspondences),
     good_correspondences (new Correspondences);
@@ -320,8 +403,14 @@ namespace vpcl {
         trans_est_lm.estimateRigidTransformation (*output, *tgt, *good_correspondences, transform);
       }
       else {
-        pcl::registration::TransformationEstimationSVD<PointNormal, PointNormal, double> trans_est_svd;
-        trans_est_svd.estimateRigidTransformation (*output, *tgt, *good_correspondences, transform);
+        if (compute_scale) {
+          vpcl::registration::TransformationEstimationSVD_SRT<PointNormal, PointNormal, double> trans_est_svd;
+          trans_est_svd.estimateRigidTransformation (*output, *tgt, *good_correspondences, transform);
+        }
+        else{
+          pcl::registration::TransformationEstimationSVD<PointNormal, PointNormal, double> trans_est_svd;
+          trans_est_svd.estimateRigidTransformation (*output, *tgt, *good_correspondences, transform);
+        }
       }
           
       // Obtain the final transformation

@@ -142,7 +142,7 @@ bool vpcl_register_ia_scale_process(bprb_func_process& pro)
     tt.tic();
     vpcl::computeInitialAlignment<PointNormal,PointNormal,FeatureType> (src_scaled, src_descriptors, tgt_points, tgt_descriptors,
                                                                         (float)min_sample_dist, (float)max_correspondence_dist,
-                                                                        nr_iters, tform);
+                                                                        nr_iters, 3, tform);
     trans_time = tt.toc();
     pcl::console::print_info ("Computed initial alignment\n");
       
@@ -221,7 +221,7 @@ bool vpcl_register_ia_scale_process(bprb_func_process& pro)
     tt.tic();
     vpcl::computeInitialAlignment<PointNormal,PointNormal,FeatureType> (src_scaled, src_descriptors, tgt_points, tgt_descriptors,
                                                                         (float)min_sample_dist, (float)max_correspondence_dist,
-                                                                        nr_iters, tform);
+                                                                        nr_iters, 3, tform);
     trans_time = tt.toc();
     pcl::console::print_info ("Computed initial alignment\n");
     

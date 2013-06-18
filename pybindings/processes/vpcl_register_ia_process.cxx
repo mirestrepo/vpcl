@@ -24,10 +24,10 @@
 #include <pcl/common/centroid.h>
 
 //:global variables
-namespace vpcl_register_ia_process_globals 
+namespace vpcl_register_ia_process_globals
 {
-  const unsigned n_inputs_ = 11;
-  const unsigned n_outputs_ = 0;
+  const unsigned n_inputs_ = 16;
+  const unsigned n_outputs_ = 2;
 }
 
 
@@ -35,7 +35,7 @@ namespace vpcl_register_ia_process_globals
 bool vpcl_register_ia_process_cons(bprb_func_process& pro)
 {
   using namespace vpcl_register_ia_process_globals ;
-  
+
   vcl_vector<vcl_string> input_types_(n_inputs_);
   unsigned i =0;
   input_types_[i++] = "vcl_string";
@@ -48,11 +48,17 @@ bool vpcl_register_ia_process_cons(bprb_func_process& pro)
   input_types_[i++] = "double";
   input_types_[i++] = "double";
   input_types_[i++] = "int";
+  input_types_[i++] = "int";
+  input_types_[i++] = "bool";
+  input_types_[i++] = "float";
+  input_types_[i++] = "bool";
+  input_types_[i++] = "float";
   input_types_[i++] = "float";
 
-  
   vcl_vector<vcl_string> output_types_(n_outputs_);
-  
+  output_types_[0] = "float";
+  output_types_[1] = "float";
+
   return pro.set_input_types(input_types_) && pro.set_output_types(output_types_);
 }
 
@@ -61,9 +67,9 @@ bool vpcl_register_ia_process_cons(bprb_func_process& pro)
 bool vpcl_register_ia_process(bprb_func_process& pro)
 {
   using namespace vpcl_register_ia_process_globals;
-  
+
   pcl::console::setVerbosityLevel(console::L_DEBUG);
-  
+
   //get inputs
   unsigned i=0;
   vcl_string src_fname = pro.get_input<vcl_string>(i++);
@@ -76,27 +82,48 @@ bool vpcl_register_ia_process(bprb_func_process& pro)
   double min_sample_dist = pro.get_input<double>(i++);
   double max_correspondence_dist = pro.get_input<double>(i++);
   int nr_iters = pro.get_input<int>(i++);
+  int nsamples = pro.get_input<int>(i++);   //number of points to use during ransac
+  bool compute_scale = pro.get_input<bool>(i++);
   float  scale = pro.get_input<float>(i++);
-  
+  bool bound_scale = pro.get_input<bool>(i++);
+  float min_scale = pro.get_input<float>(i++);
+  float max_scale = pro.get_input<float>(i++);
+
+
   cout <<  "\nSource: " << src_fname << "\nTarget : " << tgt_fname
   << "Source descriptors: " << src_features_fname << "\nTarget descriptors: " << tgt_features_fname
-  <<"\nmin_sample_dist: " << min_sample_dist << "\nmax_correspondence_dist:" << max_correspondence_dist << "\nnr_iters: " <<nr_iters <<endl ;
+  <<"\nmin_sample_dist: " << min_sample_dist << "\nmax_correspondence_dist:" << max_correspondence_dist
+  << "\nnr_iters: " <<nr_iters <<"\nnsample: " << nsamples
+  << "\ncompute_scale: " <<compute_scale <<"\nscale: " << scale <<endl ;
   
+  
+//  cout << "Rand: " << static_cast<int> (1000 * (rand () / (RAND_MAX + 1.0))) <<endl;
+  srand ( time(NULL) );
+//  cout << "Rand: " << (time(NULL))  <<endl;
+
+//  return true;
+
   //Load input point clouds
   PointCloud<PointNormal>::Ptr src_points(new PointCloud<PointNormal>);
   vpcl_io_util::load_cloud<PointNormal>(src_fname, src_points);
   PointCloud<PointNormal>::Ptr tgt_points(new PointCloud<PointNormal>);
   vpcl_io_util::load_cloud<PointNormal>(tgt_fname, tgt_points);
-  
+
   CorrespondencesPtr correspondences (new Correspondences);
   Eigen::Matrix4f tform;
   console::TicToc tt;
   double trans_time = 0.0;
+  float ransac_scale = 0.0f;
+  float avg_scale = 0.0f;
+  double total_iter = 0.0;
   
+  
+                                       
+
   //Load descriptos
   if (descriptor_type == "FPFH") {
     typedef FPFHSignature33 FeatureType;
-    
+
     cout << "Loading Descriptors" << endl;
     PointCloud<FeatureType>::Ptr src_descriptors(new PointCloud<FeatureType>);
     if (pcl::io::loadPCDFile (src_features_fname, *src_descriptors) < 0)
@@ -106,30 +133,39 @@ bool vpcl_register_ia_process(bprb_func_process& pro)
       return (false);
     cout << "Done Loading Descriptors" << endl;
 
-    
-    cout << "Applying Scale: " << scale << endl;
-    
+
     tform.setIdentity ();
-    tform.topLeftCorner (3, 3) *= Eigen::Matrix3f::Identity() * scale;;
-    
-    pcl::PointCloud<PointNormal>::Ptr src_scaled(new pcl::PointCloud<PointNormal>);
-    transformPointCloudWithNormals (*src_points, *src_scaled, tform);
-    tform.setIdentity ();
-    
-   
-    // Find the transform that roughly aligns the points
-    tt.tic();
-    vpcl::computeInitialAlignment<PointNormal,PointNormal,FeatureType> (src_scaled, src_descriptors, tgt_points, tgt_descriptors,
-                                                                        (float)min_sample_dist, (float)max_correspondence_dist,
-                                                                        nr_iters, tform);
-    trans_time = tt.toc();
-    cout << "Computed initial alignment\n";
-      
+
+    if (!compute_scale) {
+      cout << "Applying Input Scale: " << scale << endl;
+      tform.topLeftCorner (3, 3) *= Eigen::Matrix3f::Identity() * scale;;
+      pcl::PointCloud<PointNormal>::Ptr src_scaled(new pcl::PointCloud<PointNormal>);
+      transformPointCloudWithNormals (*src_points, *src_scaled, tform);
+      tform.setIdentity ();
+      // Find the transform that roughly aligns the points
+      tt.tic();
+      vpcl::computeInitialAlignment<PointNormal,PointNormal,FeatureType> (src_scaled, src_descriptors, tgt_points, tgt_descriptors,
+                                                                          (float)min_sample_dist, (float)max_correspondence_dist,
+                                                                          nr_iters, nsamples, tform);
+      trans_time = tt.toc();
+      cout << "Computed initial alignment\n";
+    }else{
+      // Find the transform that roughly aligns the points
+      tt.tic();
+      total_iter = vpcl::computeInitialAlignmentScale<PointNormal,PointNormal,FeatureType> (src_points, src_descriptors, tgt_points, tgt_descriptors,
+                                                                               (float)min_sample_dist, (float)max_correspondence_dist,
+                                                                               nr_iters, nsamples, tform, ransac_scale, avg_scale,
+                                                                               bound_scale, min_scale, max_scale);
+      trans_time = tt.toc();
+      cout << "Computed initial alignment\n";
+
+    }
+
   }
   if (descriptor_type == "SHOT") {
-    
+
     typedef SHOT352 FeatureType;
-    
+
     cout << "Loading Descriptors" << endl;
 
     PointCloud<FeatureType>::Ptr src_descriptors(new PointCloud<FeatureType>);
@@ -138,10 +174,10 @@ bool vpcl_register_ia_process(bprb_func_process& pro)
     PointCloud<FeatureType>::Ptr tgt_descriptors(new PointCloud<FeatureType>);
     if (pcl::io::loadPCDFile (tgt_features_fname, *tgt_descriptors) < 0)
       return (false);
-    
+
     cout << "Done Loading Descriptors" << endl;
 
-   
+
     //remove possible NAN descriptors
     std::vector<int> indeces_src;
     vpcl::correspondance::removeNaNDescriptors<PointNormal, FeatureType, 352>(*src_points, *src_descriptors, *src_points, *src_descriptors, indeces_src);
@@ -149,52 +185,73 @@ bool vpcl_register_ia_process(bprb_func_process& pro)
     vpcl::correspondance::removeNaNDescriptors<PointNormal, FeatureType, 352>(*tgt_points, *tgt_descriptors, *tgt_points, *tgt_descriptors, indeces_tgt);
 
     cout << "Done Removing NAN" << endl;
-   
-    cout << "Applying Scale: " << scale << endl;
-    
+
     tform.setIdentity ();
-    tform.topLeftCorner (3, 3) *= Eigen::Matrix3f::Identity() * scale;;
-    
-    pcl::PointCloud<PointNormal>::Ptr src_scaled(new pcl::PointCloud<PointNormal>);
-    transformPointCloudWithNormals (*src_points, *src_scaled, tform);
-    tform.setIdentity ();
-    
-    
-    // Find the transform that roughly aligns the points
-    tt.tic();
-    vpcl::computeInitialAlignment<PointNormal,PointNormal,FeatureType> (src_scaled, src_descriptors, tgt_points, tgt_descriptors,
-                                                                        (float)min_sample_dist, (float)max_correspondence_dist,
-                                                                        nr_iters, tform);
-    trans_time = tt.toc();
-    cout << "Computed initial alignment\n";
-    
+
+    if (!compute_scale) {
+      cout << "Applying Input Scale: " << scale << endl;
+      tform.topLeftCorner (3, 3) *= Eigen::Matrix3f::Identity() * scale;;
+      pcl::PointCloud<PointNormal>::Ptr src_scaled(new pcl::PointCloud<PointNormal>);
+      transformPointCloudWithNormals (*src_points, *src_scaled, tform);
+      tform.setIdentity ();
+      // Find the transform that roughly aligns the points
+      tt.tic();
+      vpcl::computeInitialAlignment<PointNormal,PointNormal,FeatureType> (src_scaled, src_descriptors, tgt_points, tgt_descriptors,
+                                                                          (float)min_sample_dist, (float)max_correspondence_dist,
+                                                                          nr_iters, nsamples, tform);
+      trans_time = tt.toc();
+      cout << "Computed initial alignment\n";
+    }else{
+      // Find the transform that roughly aligns the points
+      tt.tic();
+      total_iter = vpcl::computeInitialAlignmentScale<PointNormal,PointNormal,FeatureType> (src_points, src_descriptors, tgt_points, tgt_descriptors,
+                                                                               (float)min_sample_dist, (float)max_correspondence_dist,
+                                                                               nr_iters, nsamples, tform, ransac_scale, avg_scale,
+                                                                               bound_scale, min_scale, max_scale);
+      trans_time = tt.toc();
+      cout << "Computed initial alignment\n";
+
+    }
+
+
+
+
   }
-   
+
+  if (!compute_scale) {
+    tform.topLeftCorner(3,3) *= Eigen::Matrix3f::Identity() * scale;
+  }
   // Transform the source point to align them with the target points
-  tform.topLeftCorner(3,3) *= Eigen::Matrix3f::Identity() * scale;
   pcl::transformPointCloud (*src_points, *src_points, tform);
-    
+
   // Save output
-  pcl::io::savePCDFile (tform_cloud_fname, *src_points); 
+  pcl::io::savePCDFile (tform_cloud_fname, *src_points);
   cout << "Saved registered clouds as: " <<  tform_cloud_fname << endl;
-   
+
   ofstream ofs(tform_fname.c_str());
-  ofs << scale << '\n'
-  << tform << '\n';
-  
+  if (!compute_scale)
+    ofs << scale << '\n' << tform << '\n';
+  else
+    ofs << tform << '\n';
+
   int lastindex = tform_fname.find_last_of(".");
   string corr_fname = tform_fname.substr(0, lastindex);
   string time_fname = corr_fname;
   corr_fname += "_corrs.txt";
   time_fname += "_time.txt";
-  
+
   ofstream time_ofs;
   time_ofs.open(time_fname.c_str());
   time_ofs << "Trans Time: " << trans_time;
+  if (bound_scale) {
+    time_ofs << "\nIter: " << total_iter;
+  }
   ofs.close();
-  
-  vpcl_io_util::saveCorrespondences(corr_fname, correspondences);
+
+//  vpcl_io_util::saveCorrespondences(corr_fname, correspondences);
+  pro.set_output_val<float>(0,ransac_scale);
+  pro.set_output_val<float>(1,avg_scale);
   
   return true;
-  
+
 }

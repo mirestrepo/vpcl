@@ -38,10 +38,9 @@ bool vpcl_io_util::load_cloud (const string &filename, typename pcl::PointCloud<
 }
 
 //: Save descriptor as txt
-template <typename DescriptorType>
+template <typename DescriptorType, int DIM>
 bool vpcl_io_util::save_descriptors_as_txt(const string &filename, typename pcl::PointCloud<DescriptorType>::Ptr cloud)
 {
-#ifdef PCL_1_6
   cout << "Saving to: " << filename <<endl;
   
   string file_type = vul_file::extension(filename);
@@ -51,7 +50,7 @@ bool vpcl_io_util::save_descriptors_as_txt(const string &filename, typename pcl:
     fos << cloud->size() << "\n";
     for(int i=0;i<cloud->size();i++)
     {
-      for(int j=0;j<cloud->points[i].descriptor.size();j++)
+      for(int j=0;j<DIM;j++)
       {
         fos << cloud->points[i].descriptor[j] << " ";
       }
@@ -64,9 +63,6 @@ bool vpcl_io_util::save_descriptors_as_txt(const string &filename, typename pcl:
     cout << "File type not supported: " << file_type << endl;
     return false;
   }
-#else
-  cout << "save_descriptors_as_txt has not been implemented for this version of PCL " <<endl;
-#endif
 }
 
 //: For PCL version < 1.7 - Some histogram based descriptors did not have a native PCD writer
@@ -127,12 +123,10 @@ bool vpcl_io_util::save_cloud (const string &filename, typename pcl::PointCloud<
   
   string file_type = vul_file::extension(filename);
   if (file_type == ".pcd") {
-    if (pcl::io::savePCDFile (filename, *cloud, binary_mode) < 0)
+    if (pcl::io::savePCDFile (filename, *cloud, binary_mode) < 0){
+      cerr << "Failed to save: " << filename <<endl;
       return (false);
-  }
-  else if (file_type == ".txt"){
-    if(!save_descriptors_as_txt<DescriptorType>(filename, cloud))
-      return false;
+    }
   }
   else {
     cout << "File type not supported: " << file_type << endl;

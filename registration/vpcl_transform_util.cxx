@@ -35,7 +35,7 @@ void transform::computeTransformation (const PointCloud<PointNormal>::Ptr &src,
   
   // Obtain the best transformation between the two sets of keypoints given the remaining correspondences
   vpcl::registration::TransformationEstimationSVD_SRT<PointNormal, PointNormal, double> trans_est;
-  trans_est.estimateRigidTransformation (*src, *tgt, *all_correspondences, S, R, T, transform);
+  trans_est.estimateRigidTransformationSRT (*src, *tgt, *all_correspondences, S, R, T, transform);
 }
 
 

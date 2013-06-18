@@ -7,6 +7,7 @@
 #include <pcl/common/centroid.h>
 #include <pcl/common/transforms.h>
 #include <pcl/common/eigen.h>
+#include <pcl/console/parse.h>
 #include <iostream>
 #include <algorithm>
 #include <util/vpcl_io_util.h>
@@ -27,8 +28,10 @@ typedef Cloud::ConstPtr CloudConstPtr;
 
 boost::shared_ptr<PCLVisualizer> vis;
 
+
+
 void
-view (const CloudConstPtr &src, const CloudConstPtr &tgt, pcl::CorrespondencesPtr corrs)
+view (const CloudConstPtr &src, const CloudConstPtr &tgt, pcl::CorrespondencesPtr corrs, double *bc_color,  double *fcolor1, double *fcolor2, int psize)
 {
   // Estimate the centroids of source, target
 
@@ -63,8 +66,8 @@ view (const CloudConstPtr &src, const CloudConstPtr &tgt, pcl::CorrespondencesPt
   transformPointCloudWithNormals (*cloud_tgt_demean, *output_tgt, tform.cast<float>());
   
   if (!vis) return;
-  PointCloudColorHandlerCustom<PointT> red (output_src, 0, 255, 0);
-  PointCloudColorHandlerCustom<PointT> blue (output_tgt, 0, 0, 255);
+  PointCloudColorHandlerCustom<PointT> red (output_src, fcolor1[0], fcolor1[1], fcolor1[2]);
+  PointCloudColorHandlerCustom<PointT> blue (output_tgt, fcolor2[0], fcolor2[1], fcolor2[2]);
 
   if (!vis->updatePointCloud<PointT> (output_src, red, "source"))
   {
@@ -74,10 +77,12 @@ view (const CloudConstPtr &src, const CloudConstPtr &tgt, pcl::CorrespondencesPt
   if (!vis->updatePointCloud<PointT> (output_tgt, blue, "target")) vis->addPointCloud<PointT> (output_tgt, blue, "target");
   vis->setPointCloudRenderingProperties (PCL_VISUALIZER_OPACITY, 0.5, "source");
   vis->setPointCloudRenderingProperties (PCL_VISUALIZER_OPACITY, 0.5, "target");
- // vis->setPointCloudRenderingProperties (PCL_VISUALIZER_POINT_SIZE, 6, "source");
+  vis->setPointCloudRenderingProperties (PCL_VISUALIZER_POINT_SIZE, psize, "source");
+  vis->setPointCloudRenderingProperties (PCL_VISUALIZER_POINT_SIZE, psize, "target");
+
 //  vis->addCoordinateSystem(1.0);
   vis->initCameraParameters ();
-//  vis->setBackgroundColor(255, 255, 255);
+  vis->setBackgroundColor(bc_color[0], bc_color[1], bc_color[2]);
   TicToc tt;
   tt.tic ();
   
@@ -98,9 +103,24 @@ main (int argc, char** argv)
   vis.reset (new PCLVisualizer ("Registration Visualizer"));
   
   if(argc < 3) {
-    cout<<"usage: ./show_clouds cloud1.pcd cloud2.pcd"<<endl;
+    cout<<"usage: ./visualize cloud1.pcd cloud2.pcd"<<endl;
     return -1;
   }
+  
+  cout << "Number of arguments: " << argc << endl;
+  
+  // Command line parsing
+  double bcolor[3] = {0, 0, 0};
+  pcl::console::parse_3x_arguments (argc, argv, "-bc", bcolor[0], bcolor[1], bcolor[2], true);
+  
+  double fcolor1[3] = {0, 255, 0};
+  pcl::console::parse_3x_arguments (argc, argv, "-fc1", fcolor1[0], fcolor1[1], fcolor1[2]);
+  
+  double fcolor2[3] = {0, 0, 255};
+  pcl::console::parse_3x_arguments (argc, argv, "-fc2", fcolor2[0], fcolor2[1], fcolor2[2]);
+  
+  int psize;
+  pcl::console::parse_argument (argc, argv, "-ps", psize);
   
   //Load corrs if applicable
   pcl::CorrespondencesPtr corrs;
@@ -122,7 +142,7 @@ main (int argc, char** argv)
 
   
   // Visualize the results
-  view (src, tgt, corrs);
+  view (src, tgt, corrs, bcolor, fcolor1, fcolor2, psize);
   
 }
 

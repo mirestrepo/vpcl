@@ -39,7 +39,7 @@ namespace vpcl_io_util{
   bool  load_cloud (const string &filename, typename pcl::PointCloud<PointType>::Ptr cloud);
   
   //: Save descriptor as txt
-  template <typename DescriptorType>
+  template <typename DescriptorType, int DIM>
   bool save_descriptors_as_txt(const string &filename, typename pcl::PointCloud<DescriptorType>::Ptr cloud);
 
   
